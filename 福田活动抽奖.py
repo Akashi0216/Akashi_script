@@ -83,9 +83,9 @@ def main(token):
 
 
 if __name__ == "__main__":
-    env = os.getenv("FTEJ")
+    env = os.getenv("FTEJCJ")
     if env:
-        TOKEN = os.environ.get("FTEJ")
+        TOKEN = os.environ.get("FTEJCJ")
     else:
         print("未检测到环境变量 futian_bks，启用内置变量")
         TOKEN = ""
