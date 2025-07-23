@@ -154,7 +154,7 @@ async function lotterySignin(user) {
              }
         };
         let res = await fetch(opts);
-        $.log(`${$.doFlag[res?.code == '0000']} ${res?.code == '0000' ? '抽奖签到: 成功, 获得' + res?.data?.ticket_times + '次抽奖机会' : '抽奖签到: ' + res?.message}\n`);
+        $.log(`${$.doFlag[res?.code == '0000']} ${res?.code == '0000' ? '抽奖签到: 成功, 获得' + res?.data?.chance + '次抽奖机会' : '抽奖签到: ' + res?.message}\n`);
     } catch (e) {
         $.log(`⛔️ 抽奖签到失败！${e}\n`);
     }
@@ -188,7 +188,7 @@ async function lotteryClock(user) {
             }
         }
         let res = await fetch(opts);
-        $.log(`${$.doFlag[res?.code == '0000']} ${res?.code == '0000' ? '抽奖成功, 获得' + res?.data?.desc : '抽奖: ' + res?.message}\n`);
+        $.log(`${$.doFlag[res?.code == '0000']} ${res?.code == '0000' ? '抽奖成功, 获得' + res?.data?.reward_num + '珑珠' : '抽奖: ' + res?.message}\n`);
     } catch (e) {
         $.log(`⛔️ 抽奖失败！${e}\n`)
     }
