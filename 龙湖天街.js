@@ -149,8 +149,8 @@ async function lotterySignin(user) {
             type: 'post',
              dataType: "json",
              body: {
-                 "component_no": "C216G18R54O4HQVV",
-                 "activity_no": "AP25N062U6LDDSKR"
+                 "component_no": "CE13Q42B02A04I6W",
+                 "activity_no": "AP25Z07390KXCWDP"
              }
         };
         let res = await fetch(opts);
@@ -182,8 +182,8 @@ async function lotteryClock(user) {
             type: 'post',
             dataType: "json",
             body: {
-                component_no: "C216G18R54O4HQVV",  // 可改为参数传入
-                activity_no: "AP25N062U6LDDSKR",  // 可改为参数传入
+                component_no: "CE13Q42B02A04I6W",  // 可改为参数传入
+                activity_no: "AP25Z07390KXCWDP",  // 可改为参数传入
                 batch_no: ""                      // 可改为参数传入
             }
         }
