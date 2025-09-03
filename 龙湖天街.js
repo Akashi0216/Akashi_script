@@ -15,7 +15,7 @@ http-request ^https?:\/\/gw2c\-hw\-open\.longfor\.com\/lmarketing\-task\-api\-mv
 hostname = gw2c-hw-open.longfor.com
 
 环境变量格式
-export lhtj_data='[{"userName": "随意","cookie": "acw_tc=xxxx","token": "","x-lf-usertoken": "","x-lf-bu-code": "C20400","x-lf-channel": "C2","x-lf-dxrisk-token": "","x-lf-dxrisk-source": "5"}]'
+export lhtj_data='[{"userName": "随意","cookie": "acw_tc=xxxx","token": "","x-lf-dxrisk-token": ""}]'
 
 ⚠️【免责声明】
 ------------------------------------------
@@ -105,12 +105,12 @@ async function signin(user) {
                 'token': user.token,
                 'x-lf-dxrisk-token': user['x-lf-dxrisk-token'],
                 'x-gaia-api-key': 'c06753f1-3e68-437d-b592-b94656ea5517',
-                'x-lf-bu-code': user['x-lf-bu-code'],
-                'x-lf-channel': user['x-lf-channel'],
+                'x-lf-bu-code': 'C20400',
+                'x-lf-channel': 'C2',
                 'origin': 'https://longzhu.longfor.com',
                 'referer': 'https://longzhu.longfor.com/',
-                'x-lf-dxrisk-source': user['x-lf-dxrisk-source'],
-                'x-lf-usertoken': user['x-lf-usertoken']
+                'x-lf-dxrisk-source': '5',
+                'x-lf-usertoken': user.token
             },
             type: 'post',
             dataType: "json",
@@ -141,16 +141,16 @@ async function lotterySignin(user) {
                 'x-lf-dxrisk-source': '5',  // 新增
                 'content-type': 'application/json',
                 'accept': 'application/json, text/plain, */*',
-                'channel': user['x-lf-channel'] || 'C2',  // 新增
-                'bucode': user['x-lf-bu-code'] || 'C20400',  // 新增
+                'channel': 'C2',  // 新增
+                'bucode':  'C20400',  // 新增
                 'origin': 'https://llt.longfor.com',
                 'referer': 'https://llt.longfor.com/'
             },
             type: 'post',
              dataType: "json",
              body: {
-                 "component_no": "CE13Q42B02A04I6W",
-                 "activity_no": "AP25Z07390KXCWDP"
+                 "component_no": "C114001B57J0XWNC",
+                 "activity_no": "AP25F082Y9BE1C8Q"
              }
         };
         let res = await fetch(opts);
@@ -171,10 +171,10 @@ async function lotteryClock(user) {
                 'authtoken': user.token,
                 'Content-Type': 'application/json',
                 'Accept': 'application/json, text/plain, */*',
-                'X-LF-DXRisk-Source': user['x-lf-dxrisk-source'],
+                'X-LF-DXRisk-Source': '5',
                 'X-LF-DXRisk-Token': user['x-lf-dxrisk-token'],
-                'channel': user['x-lf-channel'],
-                'bucode': user['x-lf-bu-code'],
+                'channel': 'C2',
+                'bucode': 'C20400',
                 'x-gaia-api-key': '2f9e3889-91d9-4684-8ff5-24d881438eaf',
                 'Origin': 'https://llt.longfor.com',
                 'Referer': 'https://llt.longfor.com/'
@@ -182,8 +182,8 @@ async function lotteryClock(user) {
             type: 'post',
             dataType: "json",
             body: {
-                component_no: "CE13Q42B02A04I6W",  // 可改为参数传入
-                activity_no: "AP25Z07390KXCWDP",  // 可改为参数传入
+                component_no: "C114001B57J0XWNC",  // 可改为参数传入
+                activity_no: "AP25F082Y9BE1C8Q",  // 可改为参数传入
                 batch_no: ""                      // 可改为参数传入
             }
         }
@@ -208,8 +208,8 @@ async function getUserInfo(user) {
             type: 'post',
             dataType: "json",
             body: {
-                "channel": user['x-lf-channel'],
-                "bu_code": user['x-lf-bu-code'],
+                "channel": 'C2',
+                "bu_code": 'C20400',
                 "token": user.token
             }
         }
@@ -235,8 +235,8 @@ async function getBalance(user) {
             type: 'post',
             dataType: "json",
             body: {
-                "channel": user['x-lf-channel'],
-                "bu_code": user['x-lf-bu-code'],
+                "channel": 'C2',
+                "bu_code": 'C20400',
                 "token": user.token
             }
         }
@@ -260,12 +260,12 @@ async function getCookie() {
         const newData = {
             "userName": '微信用户',
             'x-lf-dxrisk-token': header['x-lf-dxrisk-token'],
-            "x-lf-channel": header['x-lf-channel'],
+            "x-lf-channel": 'C2',
             "token": header.token,
-            'x-lf-usertoken': header['x-lf-usertoken'],
+            'x-lf-usertoken': header.token,
             "cookie": header.cookie,
-            "x-lf-bu-code": header['x-lf-bu-code'],
-            'x-lf-dxrisk-source': header['x-lf-dxrisk-source']
+            "x-lf-bu-code": 'C20400',
+            'x-lf-dxrisk-source': '5'
         }
         const index = userCookie.findIndex(e => e.token == newData.token);
         index !== -1 ? userCookie[index] = newData : userCookie.push(newData);
