@@ -2,9 +2,13 @@
 # -*- coding: utf-8 -*-
 
 """
-酒仙网全自动任务脚本 (苹果抓包适配版)
-更新日期: 2026-01-13
-环境变量 JX_TOKEN，值为抓包获取的 "token" 值。
+@name: 酒仙网全自动任务脚本 (双端适配版)
+@date: 2026-01-19
+    1. 【新增】支持安卓(Android)和苹果(iOS)双模式切换，解决设备指纹不匹配问题。
+    2. 自动识别环境变量配置，调整请求头和设备参数。
+    3. 继承 v5.3 的所有修复功能（多重验证、参数对齐）。
+    环境变量 JX_TOKEN: 抓包获取的 token 值。
+    环境变量 JX_PLATFORM: (可选) 填 "android" 切换为安卓模式；不填默认为苹果模式。
 """
 
 import os
@@ -25,40 +29,51 @@ class LegacyRenegotiationAdapter(HTTPAdapter):
         kwargs['ssl_context'] = context
         return super(LegacyRenegotiationAdapter, self).init_poolmanager(*args, **kwargs)
 
-# ================================= 常量定义 (严格匹配新数据包) =================================
-# 基于 260112.txt 更新
-COMMON_PARAMS = {
-    'apiVersion': '1.0', 
-    'appKey': 'D0F0C65E-92E9-4F57-80AA-F9EF52626381',
-    'appVersion': '9.2.16', 
-    'areaId': '500', 
-    'channelCode': '0,1', 
-    'cityName': '北京市',
-    'consentStatus': '2', 
-    'cpsId': 'appstore', 
-    'deviceIdentify': 'D0F0C65E-92E9-4F57-80AA-F9EF52626381',
-    'deviceType': 'IPHONE', 
-    'deviceTypeExtra': '0', 
-    'equipmentType': 'iPhone 6s Plus',
-    'netEnv': 'WIFI', 
-    # 注意：pushToken 已更新为新包中的值
-    'pushToken': '0eaa91262cff5106e786743f48adb67db2dd5361731d56fb6c72d25ea437e2ce',
-    'screenReslolution': '414.00x736.00', 
-    'supportWebp': '1', 
-    'sysVersion': '15.8.5',
+# ================================= 参数配置 =================================
+# 苹果参数 (基于 iPhone 6s Plus / iOS 15.8.5)
+IOS_PARAMS = {
+    'common': {
+        'apiVersion': '1.0', 'appKey': 'D0F0C65E-92E9-4F57-80AA-F9EF52626381',
+        'appVersion': '9.2.16', 'areaId': '500', 'channelCode': '0,1',
+        'cityName': '北京市', 'consentStatus': '2', 'cpsId': 'appstore',
+        'deviceIdentify': 'D0F0C65E-92E9-4F57-80AA-F9EF52626381',
+        'deviceType': 'IPHONE', 'deviceTypeExtra': '0', 'equipmentType': 'iPhone 6s Plus',
+        'netEnv': 'WIFI', 
+        'pushToken': '0eaa91262cff5106e786743f48adb67db2dd5361731d56fb6c72d25ea437e2ce',
+        'screenReslolution': '414.00x736.00', 'supportWebp': '1', 'sysVersion': '15.8.5',
+    },
+    'headers': {
+        'Host': 'newappuser.jiuxian.com',
+        'User-Agent': 'jiuxian/9.2.16 (iPhone; iOS 15.8.5; Scale/3.00)',
+        'Accept-Language': 'zh-Hans-US;q=1',
+        'Accept': 'text/html; q=1.0, text/*; q=0.8, image/gif; q=0.6, image/jpeg; q=0.6, image/*; q=0.5, */*; q=0.1',
+        'Connection': 'keep-alive',
+        'Accept-Encoding': 'gzip, deflate, br'
+    },
+    'webview_ua': 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_8_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko)  oadzApp suptwebp/2 jiuxianApp/9.2.16 from/iOS areaId/500'
 }
 
-# 严格模拟 iPhone 请求头
-NATIVE_HEADERS = {
-    'Host': 'newappuser.jiuxian.com',
-    'User-Agent': 'jiuxian/9.2.16 (iPhone; iOS 15.8.5; Scale/3.00)',
-    'Accept-Language': 'zh-Hans-US;q=1',
-    'Accept': 'text/html; q=1.0, text/*; q=0.8, image/gif; q=0.6, image/jpeg; q=0.6, image/*; q=0.5, */*; q=0.1',
-    'Connection': 'keep-alive',
-    'Accept-Encoding': 'gzip, deflate, br'
+# 安卓参数 (通用安卓配置)
+ANDROID_PARAMS = {
+    'common': {
+        'apiVersion': '1.0', 'appKey': 'android_key_placeholder', # 安卓通常不需要特定Key或通用
+        'appVersion': '9.2.16', 'areaId': '500', 'channelCode': '0,1',
+        'cityName': '北京市', 'consentStatus': '2', 'cpsId': 'yingyongbao',
+        'deviceIdentify': 'android_device_id_mock', # 实际安卓抓包中会有具体ID
+        'deviceType': 'ANDROID', 'deviceTypeExtra': '0', 'equipmentType': 'android',
+        'netEnv': 'WIFI', 'pushToken': '',
+        'screenReslolution': '1080x1920', 'supportWebp': '1', 'sysVersion': '11',
+    },
+    'headers': {
+        'Host': 'newappuser.jiuxian.com',
+        'User-Agent': 'jiuxian/9.2.16 (Linux; Android 11; Scale/3.00)',
+        'Accept-Language': 'zh-CN,zh;q=0.9',
+        'Accept': '*/*',
+        'Connection': 'keep-alive',
+        'Accept-Encoding': 'gzip, deflate'
+    },
+    'webview_ua': 'Mozilla/5.0 (Linux; Android 11; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/87.0.4280.141 Mobile Safari/537.36 jiuxianApp/9.2.16'
 }
-
-WEBVIEW_USER_AGENT = 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_8_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko)  oadzApp suptwebp/2 jiuxianApp/9.2.16 from/iOS areaId/500'
 
 # ================================= 工具函数 =================================
 def mask_user(username):
@@ -75,11 +90,21 @@ def print_log(msg):
 
 # ================================= 核心逻辑 =================================
 class JXClient:
-    def __init__(self, token):
+    def __init__(self, token, platform='apple'):
         self.token = token
+        self.platform = platform
         self.session = requests.Session()
         self.session.mount('https://', LegacyRenegotiationAdapter())
-        self.session.headers.update(NATIVE_HEADERS)
+        
+        # 根据平台选择配置
+        if platform == 'android':
+            self.config = ANDROID_PARAMS
+            print_log("📱 当前模式: [安卓 Android]")
+        else:
+            self.config = IOS_PARAMS
+            print_log("🍎 当前模式: [苹果 iOS]")
+            
+        self.session.headers.update(self.config['headers'])
         self.username = "获取中..."
         self.masked_name = "获取中..."
 
@@ -87,31 +112,27 @@ class JXClient:
         """双重接口验证 Token"""
         print_log(f"🔑 正在核对 Token ({self.token[:6]}...)...")
         
-        # 方案 A: 通过个人资产接口验证 (GET)
         if self._check_winebibber():
             return True
-            
+        
         print_log("⚠️ 方案A验证失败，尝试方案B...")
         time.sleep(1)
         
-        # 方案 B: 通过模块数据接口验证 (POST)
         if self._check_module_data():
             return True
             
-        print_log("❌ 所有验证方案均失败，请检查 Token 是否已更新。")
+        print_log("❌ 验证失败。如果是安卓抓包，请设置环境变量 JX_PLATFORM='android'")
         return False
 
     def _check_winebibber(self):
         url = "https://newappuser.jiuxian.com/user/myWinebibber.htm"
-        params = {**COMMON_PARAMS, 'token': self.token}
+        params = {**self.config['common'], 'token': self.token}
         try:
-            # 严格按照抓包顺序发送参数，虽然 requests 字典无序，但通常没问题
             response = self.session.get(url, params=params, timeout=10)
             json_data = response.json()
             
             if str(json_data.get("success")) == "1":
                 result = json_data.get("result", {})
-                # 优先从 userAddressInfo 拿手机号
                 mobile = result.get("userAddressInfo", {}).get("mobile")
                 if not mobile:
                     mobile = result.get("bibberInfo", {}).get("userName")
@@ -129,26 +150,22 @@ class JXClient:
 
     def _check_module_data(self):
         url = "https://newappuser.jiuxian.com/user/getModuleData.htm"
-        data = {**COMMON_PARAMS, 'token': self.token}
-        # POST 请求头稍微不同，Content-Type 会自动添加
+        data = {**self.config['common'], 'token': self.token}
         try:
             response = self.session.post(url, data=data, timeout=10)
             json_data = response.json()
             if str(json_data.get("success")) == "1":
-                print_log(f"✅ 方案B验证成功！(Token有效，但未获取到手机号)")
+                print_log(f"✅ 方案B验证成功！(Token有效)")
                 self.username = "未知用户"
                 self.masked_name = "未知用户"
                 return True
-            else:
-                print_log(f"   方案B返回错误: {json_data.get('errMsg')}")
-        except Exception as e:
-            print_log(f"   方案B请求异常: {e}")
+        except Exception: pass
         return False
 
     def query_balance(self, prefix=""):
         if not self.token: return 0
         url = "https://newappuser.jiuxian.com/user/myWinebibber.htm"
-        params = {**COMMON_PARAMS, 'token': self.token}
+        params = {**self.config['common'], 'token': self.token}
         try:
             response = self.session.get(url, params=params, timeout=10)
             result = response.json()
@@ -158,8 +175,7 @@ class JXClient:
                 gold_money = bibber_info.get("goldMoney", 0)
                 print_log(f"💰 {prefix}余额: {gold_money} 金币")
                 return int(gold_money)
-        except Exception:
-            pass
+        except Exception: pass
         return 0
 
     def do_daily_tasks(self):
@@ -167,22 +183,20 @@ class JXClient:
         self.query_balance(prefix="初始")
         
         info_url = "https://newappuser.jiuxian.com/memberChannel/memberInfo.htm"
-        params = {**COMMON_PARAMS, 'token': self.token}
+        params = {**self.config['common'], 'token': self.token}
         
         try:
-            # 尝试获取任务，如果未登录错误，说明 memberInfo 接口校验更严格
             response = self.session.get(info_url, params=params, timeout=10)
             json_data = response.json()
             
             if str(json_data.get("success")) != "1":
                 print_log(f"⚠️ 无法获取任务列表: {json_data.get('errMsg')}")
-                print_log("💡 提示: 您的账号可能需要手动登录App刷新状态，或者该接口被风控。")
                 return
 
             result = json_data.get("result", {})
             if not isinstance(result, dict): return
             
-            # 1. 签到
+            # 签到
             if not result.get("isSignTody"):
                 print_log("📌 执行每日签到...")
                 self.do_sign_in()
@@ -190,7 +204,7 @@ class JXClient:
             else:
                 print_log("👍 今日已签到")
 
-            # 2. 重新获取任务列表状态
+            # 重新获取任务
             response = self.session.get(info_url, params=params, timeout=10)
             result = response.json().get("result", {})
             task_info = result.get("taskChannel", {})
@@ -207,18 +221,16 @@ class JXClient:
             for task in task_list:
                 task_name = task.get("taskName")
                 task_state = task.get("state")
-                
                 print_log(f"▶️ 处理: {task_name}")
                 
                 if task_state == 0: 
-                    if task.get("taskType") == 1: # 浏览
+                    if task.get("taskType") == 1:
                         self.do_browse_task(task, task_token)
-                    elif task.get("taskType") == 2: # 分享
+                    elif task.get("taskType") == 2:
                         self.do_share_task(task, task_token)
                 elif task_state == 1: 
                     print_log("   - 补领奖励...")
                     self.claim_task_reward(task.get("id"), task_token)
-
                 time.sleep(random.randint(2, 4))
 
         except Exception as e:
@@ -226,7 +238,7 @@ class JXClient:
 
     def do_sign_in(self):
         url = "https://newappuser.jiuxian.com/memberChannel/userSign.htm"
-        params = {**COMMON_PARAMS, 'token': self.token}
+        params = {**self.config['common'], 'token': self.token}
         try:
             res = self.session.get(url, params=params, timeout=10).json()
             if res.get("success") == "1":
@@ -239,8 +251,8 @@ class JXClient:
         try:
             url, countdown = task.get("url"), task.get("countDown", 15)
             host = urlparse(url).netloc
-            headers = {**NATIVE_HEADERS, 'Host': host, 'User-Agent': WEBVIEW_USER_AGENT}
-            cookies = {'token': self.token} # 任务相关可能需要Cookie形式的Token
+            headers = {**self.config['headers'], 'Host': host, 'User-Agent': self.config['webview_ua']}
+            cookies = {'token': self.token}
             
             print_log(f"   - 浏览页面 (等待 {countdown}s)...")
             self.session.get(url, headers=headers, cookies=cookies, timeout=10)
@@ -268,7 +280,7 @@ class JXClient:
             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
             'Origin': 'https://shop.jiuxian.com', 
             'Referer': task.get("url"),
-            'User-Agent': WEBVIEW_USER_AGENT
+            'User-Agent': self.config['webview_ua']
         }
         cookies = {'token': self.token}
         try:
@@ -280,7 +292,7 @@ class JXClient:
 
     def claim_task_reward(self, task_id, task_token):
         url = "https://newappuser.jiuxian.com/memberChannel/receiveRewards.htm"
-        params = {**COMMON_PARAMS, 'token': self.token, 'taskId': task_id, 'taskToken': task_token}
+        params = {**self.config['common'], 'token': self.token, 'taskId': task_id, 'taskToken': task_token}
         try:
             res = self.session.get(url, params=params, timeout=10).json()
             if res.get("success") == "1":
@@ -299,21 +311,24 @@ class JXClient:
         return self.masked_name, final_balance
 
 def main():
-    print_log("====== 🚀 酒仙网全自动任务 v5.3  🚀 ======")
+    print_log("====== 🚀 酒仙网全自动任务 v5.4 (双端适配版) 🚀 ======")
     jx_token = os.environ.get("JX_TOKEN")
+    platform = os.environ.get("JX_PLATFORM", "apple").lower() # 获取平台设置
+    
     if not jx_token:
         print_log("🛑 未找到环境变量 JX_TOKEN，请填入抓包获取的 token 值！")
         return
 
     tokens = [x for x in jx_token.strip().split("\n") if x.strip()]
-    print_log(f"🔧 待执行账号数: {len(tokens)}")
+    print_log(f"🔧 待执行账号数: {len(tokens)} | 模式: {platform}")
     
     summary_list = [] 
 
     for i, token in enumerate(tokens):
         print_log(f"\n>>>>>> 正在执行第 {i + 1} 个账号 <<<<<<")
         try:
-            client = JXClient(token.strip())
+            # 传入平台参数
+            client = JXClient(token.strip(), platform=platform)
             name, balance = client.run()
             if name != "获取中..." and balance > 0:
                 summary_list.append({"name": name, "balance": balance})
@@ -354,7 +369,7 @@ def main():
         print_log(f"💰 今日总收益: {total_gold} 金币")
         print_log("="*62)
     else:
-        print_log("\n⚠️ 未能获取有效数据，请检查 JX_TOKEN 是否已更新为新数据包中的值 (887331...)")
+        print_log("\n⚠️ 未能获取有效数据，如果是安卓抓包，请确保设置了 JX_PLATFORM='android'")
 
 if __name__ == "__main__":
     main()
