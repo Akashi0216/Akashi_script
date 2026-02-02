@@ -7,7 +7,7 @@ from requests.exceptions import RequestException
 # ==============================================================================
 # 【环境变量QH配置说明（无token，隐藏wid展示）】
 # 1. 格式：
-#    - 单账号：直接填写wid（例：123456）
+#    - 单账号：直接填写wid与手机号（例：QH=wid#phone）
 #    - 多账号：支持两种分隔方式，可混合使用
 #      - &分隔：123&456&789
 #      - 换行分隔：每个wid单独占一行（Windows/Linux换行符均兼容）
@@ -39,38 +39,46 @@ def generate_random_ua():
     )
 
 def parse_qh_env():
-    
     qh_env = os.getenv("QH", "")
     if not qh_env:
-        print("❌ 错误：未检测到环境变量QH，请按配置说明设置！")
+        print("❌ 错误：未检测到环境变量QH")
         return None
-    
+
     unified_env = qh_env.replace("\r\n", "&").replace("\n", "&")
     account_str_list = unified_env.split("&")
-    
+
     accounts = []
-    for idx, account_str in enumerate(account_str_list, 1):
-        wid = account_str.strip()
-        if not wid:
-            print(f"⚠️  检测到第{idx}个无效项（空内容），已跳过")
+    for idx, item in enumerate(account_str_list, 1):
+        item = item.strip()
+        if not item:
             continue
-        
+
+        if "#" not in item:
+            print(f"❌ 第{idx}个账号格式错误，应为 wid#phone")
+            continue
+
+        wid, phone = item.split("#", 1)
+        wid = wid.strip()
+        phone = phone.strip()
+
+        if not wid or not phone:
+            print(f"❌ 第{idx}个账号 wid 或 phone 为空")
+            continue
+
         ua = generate_random_ua()
-        print(f"ℹ️  账号{idx}：自动生成UA（前70字符）：{ua[:70]}...")
-        
+        print(f"ℹ️ 账号{idx}：wid={mask_wid(wid)}，phone已读取")
+
         accounts.append({
-            "index": idx, 
-            "wid": wid, 
-            "token": "", 
+            "index": idx,
+            "wid": wid,
+            "phone": phone,
+            "token": "",
             "ua": ua,
-            "user_data": {}, 
+            "user_data": {},
             "land_data": []
         })
-    
-    if not accounts:
-        print("❌ 没有可用账号（所有项格式错误或为空），脚本终止")
-        return None
-    return accounts
+
+    return accounts if accounts else None
 
 def get_account_headers(account):
     
@@ -92,33 +100,54 @@ def mask_wid(wid):
 def login_account(account):
 
     login_url = "https://api.zhumanito.cn/api/login"
-    headers = get_account_headers(account)
-    headers["Content-Type"] = "application/json;charset=utf-8"
-    payload = {"wid": account["wid"]}
-    
-    try:
-        print(f"🔐 账号{account['index']}：发起登录请求（wid脱敏：{mask_wid(account['wid'])}）")
 
-        response = requests.post(login_url, headers=headers, json=payload, timeout=20)
+    headers = {
+        "User-Agent": account["ua"],
+        "Content-Type": "application/json;charset=UTF-8",
+        "Accept": "*/*",
+        "Origin": "https://h5.zhumanito.cn",
+        "Referer": "https://h5.zhumanito.cn/",
+        "Accept-Language": "zh-CN,zh;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        # 🔴 Authorization 可以不带
+    }
+
+    payload = {
+        "wid": account["wid"],
+        "wm_phone": account["phone"]
+    }
+
+    try:
+        print(
+            f"🔐 账号{account['index']}：登录中 "
+            f"(wid={mask_wid(account['wid'])})"
+        )
+
+        response = requests.post(
+            login_url,
+            headers=headers,
+            json=payload,
+            timeout=20
+        )
         response.raise_for_status()
         res = response.json()
-        
+
         if res.get("code") != 200:
-            print(f"❌ 账号{account['index']}：登录失败，原因：{res.get('msg', '未知错误')}")
+            print(
+                f"❌ 账号{account['index']}：登录失败，原因：{res.get('msg')}"
+            )
             return False
-        
+
+        # ✅ 自动提取 token（你关心的点）
         account["token"] = res["data"]["token"]
         account["user_data"] = res["data"]["user"]
         account["land_data"] = res["data"].get("land", [])
-        
-        print(f"✅ 账号{account['index']}：登录成功！")
-        print(f"  📌 当前资源：💧{account['user_data']['water_num']}，☀️{account['user_data']['sun_num']}")
-        if account["land_data"]:
-            print(f"  🌱 土地状态：共{len(account['land_data'])}块，生长阶段{account['land_data'][0]['seed_stage']}")
+
+        print(f"✅ 账号{account['index']}：登录成功")
         return True
-    
+
     except RequestException as e:
-        print(f"❌ 账号{account['index']}：登录异常，原因：{str(e)}")
+        print(f"❌ 账号{account['index']}：登录异常：{e}")
         return False
 
 def get_user_status(account):
