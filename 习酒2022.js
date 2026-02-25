@@ -128,7 +128,7 @@ $.get(indexapi(`anti-channeling/public/index.php/api/v2/Member/getJifenShopMembe
             data = JSON.parse(data);
              if(data.code==0){
 
-               console.log(`id:${data.data.id}\nintegration:${data.data.integration}\n${data.data['level_name']}`)  
+               console.log(`phone:${data.data.phone_no}\nid:${data.data.id}\nintegration:${data.data.integration}\n${data.data['level_name']}`)  
               
               
               
