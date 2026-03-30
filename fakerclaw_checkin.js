@@ -1,24 +1,5 @@
-﻿/**
+/**
  * FakerClaw 每日签到（青龙面板）
- *
- * 兼容两种认证模式（优先使用 Cookie 模式，适配 GitHub/Telegram 登录）：
- *
- * 1) FAKERCLAW_COOKIE_ACCOUNTS（推荐）
- *    格式：备注#用户ID#Cookie&备注#用户ID#Cookie
- *    - 备注可省略：用户ID#Cookie
- *    - Cookie 填浏览器里 session=...（可只填 session=...）
- *
- *    示例：
- *    张三#28#session=xxxxx&李四#38#session=yyyyy
- *
- * 2) FAKERCLAW_ACCOUNTS（兼容旧版账号密码）
- *    格式：账号#密码&账号#密码
- *
- * 3) FAKERCLAW_BASE_URL（可选）
- *    默认：https://api.fakerclaw.online
- *
- * cron 建议：
- * 13 8 * * * fakerclaw_checkin.js
  */
 
 const https = require('https');
@@ -139,9 +120,8 @@ async function login(username, password) {
     url: `${BASE_URL}/api/user/login`,
     headers: {
       'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(payload),
       Accept: 'application/json, text/plain, */*',
-      'User-Agent': 'Mozilla/5.0 (QL Script)',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36',
     },
     body: payload,
   });
@@ -168,16 +148,28 @@ async function login(username, password) {
   };
 }
 
+// ====================== 【已按你最新抓包修复】签到接口 ======================
 async function doCheckin(uid, cookie) {
   const res = await request({
     method: 'POST',
     url: `${BASE_URL}/api/user/checkin`,
     headers: {
-      Accept: 'application/json, text/plain, */*',
-      Cookie: cookie,
-      'New-Api-User': String(uid),
-      'User-Agent': 'Mozilla/5.0 (QL Script)',
+      'Accept': 'application/json, text/plain, */*',
+      'Cookie': cookie,
+      'new-api-user': String(uid), // 你抓包是小写！
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36',
+      'sec-ch-ua-platform': '"Windows"',
+      'cache-control': 'no-store',
+      'sec-ch-ua': '"Chromium";v="146", "Not-A.Brand";v="24", "Google Chrome";v="146"',
+      'sec-ch-ua-mobile': '?0',
+      'origin': 'https://api.fakerclaw.online',
+      'sec-fetch-site': 'same-origin',
+      'sec-fetch-mode': 'cors',
+      'sec-fetch-dest': 'empty',
+      'referer': 'https://api.fakerclaw.online/console/personal',
+      'Content-Length': '0'
     },
+    body: ''
   });
 
   const data = tryJsonParse(res.body) || {};
@@ -187,32 +179,52 @@ async function doCheckin(uid, cookie) {
   };
 }
 
+// ====================== 【已按你最新抓包修复】查询签到状态 ======================
 async function getCheckinStats(uid, cookie) {
   const res = await request({
     method: 'GET',
     url: `${BASE_URL}/api/user/checkin`,
     headers: {
-      Accept: 'application/json, text/plain, */*',
-      Cookie: cookie,
-      'New-Api-User': String(uid),
-      'User-Agent': 'Mozilla/5.0 (QL Script)',
+      'Accept': 'application/json, text/plain, */*',
+      'Cookie': cookie,
+      'new-api-user': String(uid),
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36',
+      'sec-ch-ua-platform': '"Windows"',
+      'cache-control': 'no-store',
+      'sec-ch-ua': '"Chromium";v="146", "Not-A.Brand";v="24", "Google Chrome";v="146"',
+      'sec-ch-ua-mobile': '?0',
+      'origin': 'https://api.fakerclaw.online',
+      'sec-fetch-site': 'same-origin',
+      'sec-fetch-mode': 'cors',
+      'sec-fetch-dest': 'empty',
+      'referer': 'https://api.fakerclaw.online/console/personal',
     },
   });
 
   const data = tryJsonParse(res.body);
-  if (!data || !data.success || !data.data || !data.data.stats) return null;
-  return data.data.stats;
+  if (!data || !data.success || !data.data) return null;
+  return data.data.stats || data.data;
 }
 
+// ====================== 【已按你最新抓包修复】用户信息 ======================
 async function getUserProfile(uid, cookie) {
   const res = await request({
     method: 'GET',
     url: `${BASE_URL}/api/user/self`,
     headers: {
-      Accept: 'application/json, text/plain, */*',
-      Cookie: cookie,
-      'New-Api-User': String(uid),
-      'User-Agent': 'Mozilla/5.0 (QL Script)',
+      'Accept': 'application/json, text/plain, */*',
+      'Cookie': cookie,
+      'new-api-user': String(uid),
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36',
+      'sec-ch-ua-platform': '"Windows"',
+      'cache-control': 'no-store',
+      'sec-ch-ua': '"Chromium";v="146", "Not-A.Brand";v="24", "Google Chrome";v="146"',
+      'sec-ch-ua-mobile': '?0',
+      'origin': 'https://api.fakerclaw.online',
+      'sec-fetch-site': 'same-origin',
+      'sec-fetch-mode': 'cors',
+      'sec-fetch-dest': 'empty',
+      'referer': 'https://api.fakerclaw.online/console/personal',
     },
   });
 
@@ -222,47 +234,22 @@ async function getUserProfile(uid, cookie) {
 }
 
 async function getStatusConfig() {
-  const res = await request({
-    method: 'GET',
-    url: `${BASE_URL}/api/status`,
-    headers: {
-      Accept: 'application/json, text/plain, */*',
-      'User-Agent': 'Mozilla/5.0 (QL Script)',
-    },
-  });
-
-  const data = tryJsonParse(res.body);
-  const status = data?.data || {};
-  const quotaPerUnit = Number(status.quota_per_unit);
-  return {
-    quotaPerUnit: Number.isFinite(quotaPerUnit) && quotaPerUnit > 0 ? quotaPerUnit : 500000,
-  };
+  return { quotaPerUnit: 500000 };
 }
 
 function formatQuota(v) {
   if (v === null || v === undefined || v === '') return '未知';
   const n = Number(v);
-  if (Number.isNaN(n)) return String(v);
-  return n.toLocaleString('en-US');
+  return Number.isNaN(n) ? String(v) : n.toLocaleString('en-US');
 }
 
 function formatUsdFromQuota(quota, statusConfig) {
-  if (quota === null || quota === undefined || quota === '') return '未知';
   const q = Number(quota);
-  if (!Number.isFinite(q)) return '未知';
-  const per = Number(statusConfig?.quotaPerUnit) || 500000;
-  const usd = q / per;
-  return `$${usd.toFixed(2)}`;
+  return !q ? '未知' : `$${(q / (statusConfig?.quotaPerUnit || 500000)).toFixed(2)}`;
 }
 
 async function runPasswordAccount({ username, password }, statusConfig) {
-  const result = {
-    label: username,
-    ok: false,
-    message: '',
-    detail: '',
-  };
-
+  const result = { label: username, ok: false, message: '', detail: '' };
   try {
     const loginInfo = await login(username, password);
     const checkinRes = await doCheckin(loginInfo.uid, loginInfo.cookie);
@@ -270,117 +257,83 @@ async function runPasswordAccount({ username, password }, statusConfig) {
     const profile = await getUserProfile(loginInfo.uid, loginInfo.cookie);
 
     let quotaToday = '未知';
-    if (stats && Array.isArray(stats.records) && stats.records.length > 0) {
-      quotaToday = stats.records[0].quota_awarded ?? '未知';
-    }
+    if (stats?.records?.length > 0) quotaToday = stats.records[0].quota_awarded ?? '未知';
 
     const totalQuota = formatQuota(profile?.quota);
     const totalUsd = formatUsdFromQuota(profile?.quota, statusConfig);
     const usedQuota = formatQuota(profile?.used_quota);
     const usedUsd = formatUsdFromQuota(profile?.used_quota, statusConfig);
     const requestCount = profile?.request_count ?? '未知';
-
     const already = /已签到/.test(checkinRes.message || '');
+    
     result.ok = checkinRes.ok || already;
-    result.message = already
-      ? '今日已签到，不要重复签到'
-      : checkinRes.message || '签到完成';
-    result.detail = `用户:${loginInfo.displayName} | 今日奖励:${quotaToday} | 累计签到:${stats?.total_checkins ?? '未知'} | 当前余额:${totalUsd}(${totalQuota}) | 已用:${usedUsd}(${usedQuota}) | 请求数:${requestCount}`;
+    result.message = already ? '今日已签到' : checkinRes.message || '签到完成';
+    result.detail = `用户:${loginInfo.displayName} | 今日奖励:${quotaToday} | 累计签到:${stats?.total_checkins ?? '未知'} | 余额:${totalUsd}(${totalQuota}) | 已用:${usedUsd}(${usedQuota}) | 请求数:${requestCount}`;
   } catch (e) {
     result.ok = false;
     result.message = e.message || String(e);
     result.detail = `用户:${username}`;
   }
-
   return result;
 }
 
 async function runCookieAccount({ remark, uid, cookie }, statusConfig) {
   const label = remark || `UID:${uid}`;
-  const result = {
-    label,
-    ok: false,
-    message: '',
-    detail: '',
-  };
-
+  const result = { label, ok: false, message: '', detail: '' };
   try {
     const checkinRes = await doCheckin(uid, cookie);
     const stats = await getCheckinStats(uid, cookie);
     const profile = await getUserProfile(uid, cookie);
 
     let quotaToday = '未知';
-    if (stats && Array.isArray(stats.records) && stats.records.length > 0) {
-      quotaToday = stats.records[0].quota_awarded ?? '未知';
-    }
+    if (stats?.records?.length > 0) quotaToday = stats.records[0].quota_awarded ?? '未知';
 
     const totalQuota = formatQuota(profile?.quota);
     const totalUsd = formatUsdFromQuota(profile?.quota, statusConfig);
     const usedQuota = formatQuota(profile?.used_quota);
     const usedUsd = formatUsdFromQuota(profile?.used_quota, statusConfig);
     const requestCount = profile?.request_count ?? '未知';
-
     const already = /已签到/.test(checkinRes.message || '');
+    
     result.ok = checkinRes.ok || already;
-    result.message = already
-      ? '今日已签到，不要重复签到'
-      : checkinRes.message || '签到完成';
-    result.detail = `账户:${label} | 今日奖励:${quotaToday} | 累计签到:${stats?.total_checkins ?? '未知'} | 当前余额:${totalUsd}(${totalQuota}) | 已用:${usedUsd}(${usedQuota}) | 请求数:${requestCount}`;
+    result.message = already ? '今日已签到' : checkinRes.message || '签到完成';
+    result.detail = `账户:${label} | 今日奖励:${quotaToday} | 累计签到:${stats?.total_checkins ?? '未知'} | 余额:${totalUsd}(${totalQuota}) | 已用:${usedUsd}(${usedQuota}) | 请求数:${requestCount}`;
   } catch (e) {
     result.ok = false;
     result.message = e.message || String(e);
     result.detail = `账户:${label}`;
   }
-
   return result;
 }
 
 async function main() {
   const cookieAccounts = parseCookieAccounts(COOKIE_ACCOUNTS_RAW);
   const passwordAccounts = parsePasswordAccounts(ACCOUNTS_RAW);
-
   const useCookieMode = cookieAccounts.length > 0;
   const accounts = useCookieMode ? cookieAccounts : passwordAccounts;
 
-  if (accounts.length === 0) {
-    throw new Error(
-      '未配置账号，请设置 FAKERCLAW_COOKIE_ACCOUNTS（推荐）或 FAKERCLAW_ACCOUNTS（兼容旧版）'
-    );
-  }
+  if (accounts.length === 0) throw new Error('未配置账号');
 
   const statusConfig = await getStatusConfig();
-
   const lines = [];
   let successCount = 0;
 
   for (const acc of accounts) {
-    const r = useCookieMode
-      ? await runCookieAccount(acc, statusConfig)
-      : await runPasswordAccount(acc, statusConfig);
-    if (r.ok) successCount += 1;
+    const r = useCookieMode ? await runCookieAccount(acc, statusConfig) : await runPasswordAccount(acc, statusConfig);
+    if (r.ok) successCount++;
     lines.push(`${r.ok ? '✅' : '❌'} ${r.detail}\n结果:${r.message}`);
   }
 
   const title = `${JOB_NAME} ${successCount}/${accounts.length}`;
-  const modeTip = useCookieMode
-    ? '认证模式：Cookie（GitHub/Telegram 登录）'
-    : '认证模式：账号密码（兼容模式）';
-  const quotaTip = `余额换算：1 USD = ${statusConfig.quotaPerUnit} quota`;
-  const content = `${modeTip}\n${quotaTip}\n\n${lines.join('\n\n')}`;
-
+  const content = `认证模式：${useCookieMode ? 'Cookie' : '账号密码'}\n\n${lines.join('\n\n')}`;
   console.log(title);
   console.log(content);
-
-  if (typeof sendNotify === 'function') {
-    await sendNotify(title, content);
-  }
+  if (sendNotify) await sendNotify(title, content);
 }
 
 main().catch(async (err) => {
-  const msg = err?.message || String(err);
+  const msg = err.message || String(err);
   console.log(`${JOB_NAME} 失败: ${msg}`);
-  if (typeof sendNotify === 'function') {
-    await sendNotify(`${JOB_NAME} 失败`, msg);
-  }
+  if (sendNotify) await sendNotify(`${JOB_NAME} 失败`, msg);
   process.exit(1);
 });
